@@ -34,23 +34,39 @@ class FKMultiRobot():
         #     URDF_FILE = rospack.get_path("dinova_fabrics_wrapper") + "/config/" + agent_name + ".urdf"
         # self.symbolic_fk(URDF_FILE)
         
-        self.forward_robot_kinematics = MobileManipulatorKinematics()#initialize before the subscriber, othersie no arribute
+        self.base_only = rospy.get_param('base_only', False)
+        param_name = rospy.resolve_name('base_only')
+        if self.base_only:
+            rospy.loginfo("{param_name} is set to True. Dingo (Base) only.", param_name)
+        else:
+            rospy.loginfo("{param_name} is set to False (or not found). The whole-body state will be considered.", param_name)
+
+        
+        self.forward_robot_kinematics = MobileManipulatorKinematics(base_only = self.base_only)#initialize before the subscriber, othersie no arribute
         self._init_subscribers()
         
     def _init_subscribers(self):
         # --- currently only subscribing to 1 other robot ---- #
         other_agent_name = list(self.other_agents.keys())[0]
         if rospy.get_param("real_robot"):
-            self._joint_states_sub = rospy.Subscriber("/"+other_agent_name+'/dinova/omni_states_vicon', JointState, self._joint_states_cb)
+            if self.base_only:
+                self._joint_states_sub = rospy.Subscriber("/"+other_agent_name+'/dingo/omni_states_vicon', JointState, self._dingo_joint_states_cb)
+            else:
+                self._joint_states_sub = rospy.Subscriber("/"+other_agent_name+'/dinova/omni_states_vicon', JointState, self._dinova_joint_states_cb)
         else:
-            self._joint_states_sub = rospy.Subscriber("/"+other_agent_name+'/dinova/omni_states', JointState, self._joint_states_cb)
-
-            
+            if self.base_only:
+                self._joint_states_sub = rospy.Subscriber("/"+other_agent_name+'/dingo/omni_states', JointState, self._dingo_joint_states_cb)
+            else:
+                self._joint_states_sub = rospy.Subscriber("/"+other_agent_name+'/dinova/omni_states', JointState, self._dinova_joint_states_cb)
         
         
-    def _joint_states_cb(self, msg: JointState):
+    def _dinova_joint_states_cb(self, msg: JointState):
         self._q_other_agents[0] = np.array(msg.position)[0:9]
             
+    
+    def _dingo_joint_states_cb(self, msg: JointState):
+        self._q_other_agents[0] = np.array(msg.position)[0:3]
+
     # def symbolic_fk(self, URDF_FILE) -> GenericURDFFk:
     #     with open(URDF_FILE, "r", encoding="utf-8") as file:
     #         urdf = file.read()

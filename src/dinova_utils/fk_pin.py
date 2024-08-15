@@ -60,7 +60,7 @@ class RobotKinematics:
         return pos, orn
 
 class MobileManipulatorKinematics(RobotKinematics):
-    def __init__(self, filepath=None, tool_link_name="tool_frame"):
+    def __init__(self, filepath=None, tool_link_name="tool_frame",base_only=False):
         if filepath is None:
             rospack = rospkg.RosPack()
             filepath = rospack.get_path("dinova_mpc") + "/assets/dinova_no_wheels.urdf"
@@ -75,7 +75,27 @@ class MobileManipulatorKinematics(RobotKinematics):
         model = pinocchio.buildModelFromXML(urdf_str, root_joint)
         #model = pinocchio.buildModelsFromUrdf(filepath, root_joint)
 
-        super().__init__(model, tool_link_name)
+        if(base_only):#lock joints to build reduced model
+            jointsToLock = ['joint_1', 'joint_2','joint_3','joint_4','joint_5','joint_6']
+            # Get the ID of all existing joints
+            jointsToLockIDs = []
+            q_idxs = []
+            for jn in jointsToLock:
+                if model.existJointName(jn):
+                    jointsToLockIDs.append(model.getJointId(jn))
+                    q_idxs.append(model.idx_qs[model.getJointId(jn)])
+                    
+                else:
+                    print('Warning: joint ' + str(jn) + ' does not belong to the model!')
+
+            initialJointConfig = np.array([0,0,0, 0,0,0,0,0,0]) # initial config of all joints
+            
+            model_reduced = pinocchio.buildReducedModel(
+                model, jointsToLockIDs, initialJointConfig)
+            super().__init__(model_reduced, tool_link_name) 
+            
+        else:
+            super().__init__(model, tool_link_name)
 
 
 
