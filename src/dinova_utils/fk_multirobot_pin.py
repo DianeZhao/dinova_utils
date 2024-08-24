@@ -37,9 +37,9 @@ class FKMultiRobot():
         self.base_only = rospy.get_param('base_only', False)
         param_name = rospy.resolve_name('base_only')
         if self.base_only:
-            rospy.loginfo("{param_name} is set to True. Dingo (Base) only.", param_name)
+            rospy.loginfo(f"{param_name} is set to True. Dingo (Base) only.")
         else:
-            rospy.loginfo("{param_name} is set to False (or not found). The whole-body state will be considered.", param_name)
+            rospy.loginfo(f"{param_name} is set to False (or not found). The whole-body state will be considered.")
 
         
         self.forward_robot_kinematics = MobileManipulatorKinematics(base_only = self.base_only)#initialize before the subscriber, othersie no arribute
